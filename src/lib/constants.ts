@@ -10,7 +10,7 @@ export const COLORS = {
   paper: '#F4FBFA',
 } as const;
 
-export type SceneId = 'city' | 'beach' | 'mountain';
+export type SceneId = 'city' | 'beach' | 'mountain' | 'school' | 'playground';
 
 export interface Scene {
   id: SceneId;
@@ -53,6 +53,26 @@ export const SCENES: Scene[] = [
     accents: ['⛰️', '🌲', '🛵'],
     weather: 'Fris · 14°',
     prompt: 'a scenic mountain pass with snow-capped peaks, green pine forests, winding road, and crisp blue sky',
+  },
+  {
+    id: 'school',
+    name: 'In school',
+    sub: 'Rondscheuren door de gang',
+    emoji: '🏫',
+    gradient: 'linear-gradient(160deg, #FFE0B2 0%, #FFAB91 55%, #CE93D8 100%)',
+    accents: ['📚', '✏️', '🛵'],
+    weather: 'Lesdag · 20°',
+    prompt: 'a fun colorful school hallway with lockers, backpacks, posters on the walls, and bright fluorescent lighting',
+  },
+  {
+    id: 'playground',
+    name: 'Op het schoolplein',
+    sub: 'Stunten bij de schommel',
+    emoji: '🎪',
+    gradient: 'linear-gradient(160deg, #C8E6C9 0%, #FFF59D 55%, #81D4FA 100%)',
+    accents: ['🎠', '⚽', '🛵'],
+    weather: 'Pauze! · 18°',
+    prompt: 'a lively school playground with swings, a climbing frame, children playing, colorful markings on the ground, and trees around the edges',
   },
 ];
 
