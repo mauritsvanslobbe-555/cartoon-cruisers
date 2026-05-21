@@ -31,7 +31,11 @@ export default function SceneScreen({ onBack, onPick, picked, setPicked }: Scene
         }}>Kies een scene voor je avontuur</p>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', paddingBottom: 8 }}>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', gap: 10,
+        overflowY: 'auto', paddingBottom: 8,
+        WebkitOverflowScrolling: 'touch',
+      }}>
         {SCENES.map(s => {
           const sel = picked === s.id;
           return (
@@ -40,58 +44,58 @@ export default function SceneScreen({ onBack, onPick, picked, setPicked }: Scene
               onClick={() => setPicked(s.id)}
               style={{
                 border: 'none', cursor: 'pointer', padding: 0,
-                borderRadius: 28, overflow: 'hidden',
+                borderRadius: 22, overflow: 'hidden',
                 background: s.gradient, position: 'relative',
-                height: sel ? 168 : 124,
+                height: sel ? 120 : 88,
                 flexShrink: 0,
                 boxShadow: sel
-                  ? `0 0 0 4px ${COLORS.mint}, 0 16px 30px rgba(31,37,64,0.18)`
-                  : '0 4px 0 rgba(31,37,64,0.06), 0 10px 20px rgba(31,37,64,0.08)',
+                  ? `0 0 0 3px ${COLORS.mint}, 0 12px 24px rgba(31,37,64,0.18)`
+                  : '0 3px 0 rgba(31,37,64,0.06), 0 8px 16px rgba(31,37,64,0.08)',
                 transition: 'all .35s cubic-bezier(.34,1.56,.64,1)',
                 textAlign: 'left',
               }}
             >
               <div style={{
-                position: 'absolute', right: 12, top: '50%',
+                position: 'absolute', right: 10, top: '50%',
                 transform: 'translateY(-50%)',
-                fontSize: sel ? 96 : 70,
-                filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
+                fontSize: sel ? 64 : 48,
+                filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.18))',
                 transition: 'font-size .35s ease',
               }}>{s.emoji}</div>
 
               {sel && (
                 <div style={{
-                  position: 'absolute', right: 110, top: 14,
-                  display: 'flex', gap: 6,
+                  position: 'absolute', right: 80, top: 10,
+                  display: 'flex', gap: 5,
                   animation: 'fadeUp .4s ease both',
                 }}>
                   {s.accents.map((a, i) => (
                     <div key={i} style={{
-                      width: 30, height: 30, borderRadius: 12,
+                      width: 26, height: 26, borderRadius: 10,
                       background: 'rgba(255,255,255,0.7)',
                       backdropFilter: 'blur(6px)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 16,
+                      fontSize: 13,
                     }}>{a}</div>
                   ))}
                 </div>
               )}
 
-              <div style={{ padding: '20px 22px', position: 'relative', zIndex: 1, maxWidth: '64%' }}>
+              <div style={{ padding: '14px 16px', position: 'relative', zIndex: 1, maxWidth: '64%' }}>
                 <div style={{
                   fontFamily: '"Fredoka", system-ui', fontWeight: 700,
-                  fontSize: 22, color: COLORS.ink, lineHeight: 1.05,
-                  letterSpacing: -0.6,
+                  fontSize: 18, color: COLORS.ink, lineHeight: 1.05,
+                  letterSpacing: -0.4,
                 }}>{s.name}</div>
                 <div style={{
-                  fontFamily: '"Fredoka", system-ui', fontSize: 14,
-                  color: 'rgba(31,37,64,0.75)', marginTop: 4,
+                  fontFamily: '"Fredoka", system-ui', fontSize: 12,
+                  color: 'rgba(31,37,64,0.75)', marginTop: 3,
                 }}>{s.sub}</div>
                 {sel && (
                   <div style={{
-                    marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: '#fff', padding: '6px 12px', borderRadius: 999,
-                    fontFamily: '"Fredoka", system-ui', fontWeight: 500, fontSize: 12,
+                    marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: '#fff', padding: '4px 10px', borderRadius: 999,
+                    fontFamily: '"Fredoka", system-ui', fontWeight: 500, fontSize: 11,
                     color: COLORS.ink, animation: 'fadeUp .4s ease both',
                   }}>
                     <span style={{ color: COLORS.mintDark }}>●</span> {s.weather}
@@ -101,14 +105,14 @@ export default function SceneScreen({ onBack, onPick, picked, setPicked }: Scene
 
               {sel && (
                 <div style={{
-                  position: 'absolute', top: 12, right: 12,
-                  width: 32, height: 32, borderRadius: '50%',
+                  position: 'absolute', top: 10, right: 10,
+                  width: 28, height: 28, borderRadius: '50%',
                   background: COLORS.mint, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   animation: 'pop .3s ease both',
                 }}>
-                  <Icon name="check" size={18} strokeWidth={3.4} />
+                  <Icon name="check" size={16} strokeWidth={3.4} />
                 </div>
               )}
             </button>
