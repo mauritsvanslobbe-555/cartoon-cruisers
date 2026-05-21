@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cartoon Cruisers
 
-## Getting Started
+Een leuke kinderapp die foto's omzet naar Pixar-stijl cartoon-characters op scooters.
 
-First, run the development server:
+## Features
+
+- Camera-integratie voor selfies via getUserMedia
+- AI-powered cartoon-conversie via Gemini 2.5 Flash
+- 3 scenes: stad, strand, bergen
+- Toeter-winkel met geluidseffecten
+- Ouderlijke-toestemming gate
+- Privacy-first: foto's worden nooit opgeslagen
+
+## Tech Stack
+
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Google Gemini 2.5 Flash (image generation)
+
+## Lokaal draaien
 
 ```bash
+npm install
+cp .env.example .env.local
+# Vul je GEMINI_API_KEY in .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Beschrijving |
+|----------|-------------|
+| `GEMINI_API_KEY` | Google AI Studio API key voor Gemini 2.5 Flash |
 
-## Learn More
+Haal een API key op via [Google AI Studio](https://aistudio.google.com/apikey).
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy naar Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push het project naar een Git repository (GitHub/GitLab/Bitbucket)
+2. Ga naar [vercel.com/new](https://vercel.com/new)
+3. Importeer de repository
+4. Voeg de environment variable toe:
+   - `GEMINI_API_KEY` = je Gemini API key
+5. Klik **Deploy**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Of via de Vercel CLI:
 
-## Deploy on Vercel
+```bash
+npm i -g vercel
+vercel --prod
+# Stel GEMINI_API_KEY in via: vercel env add GEMINI_API_KEY
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Projectstructuur
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    layout.tsx          # Root layout met Fredoka font
+    page.tsx            # App shell met navigatie
+    globals.css         # Animaties en base styles
+    api/transform/
+      route.ts          # Gemini API endpoint (2-staps cartoon generatie)
+  components/
+    ui.tsx              # Gedeelde UI componenten
+    ParentalConsent.tsx # Ouderlijke toestemming scherm
+    screens/
+      WelcomeScreen.tsx
+      SceneScreen.tsx
+      PhotoScreen.tsx   # Camera + galerij
+      LoadingScreen.tsx # Cartoon generatie met voortgang
+      ResultScreen.tsx  # Resultaat + delen/bewaren
+      HornShopScreen.tsx
+  lib/
+    constants.ts        # Kleuren, scenes, toeters
+    audio.ts            # Web Audio toetergeluiden
+```
