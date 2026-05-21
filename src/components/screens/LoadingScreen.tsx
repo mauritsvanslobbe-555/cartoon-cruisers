@@ -6,12 +6,14 @@ import { Screen, BigButton, BlobDeco } from '../ui';
 
 interface LoadingScreenProps {
   photo: string;
+  photos?: string[];
+  mode?: 'solo' | 'group';
   scene: SceneId;
   onDone: (resultImage: string) => void;
   onError: (error: string) => void;
 }
 
-export default function LoadingScreen({ photo, scene, onDone, onError }: LoadingScreenProps) {
+export default function LoadingScreen({ photo, photos, mode = 'solo', scene, onDone, onError }: LoadingScreenProps) {
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -29,7 +31,11 @@ export default function LoadingScreen({ photo, scene, onDone, onError }: Loading
       const res = await fetch('/api/transform', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photo, scene }),
+        body: JSON.stringify(
+          mode === 'group'
+            ? { photos, scene, mode: 'group' }
+            : { photo, scene, mode: 'solo' }
+        ),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -42,7 +48,7 @@ export default function LoadingScreen({ photo, scene, onDone, onError }: Loading
       setFailed(true);
       onError(msg);
     }
-  }, [photo, scene, onError]);
+  }, [photo, photos, mode, scene, onError]);
 
   useEffect(() => {
     startTransform();

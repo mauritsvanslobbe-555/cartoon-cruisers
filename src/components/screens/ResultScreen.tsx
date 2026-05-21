@@ -9,11 +9,12 @@ interface ResultScreenProps {
   scene: Scene;
   ownedHorn: string | null;
   resultImage: string | null;
+  mode?: 'solo' | 'group';
   onRestart: () => void;
   onOpenShop: () => void;
 }
 
-export default function ResultScreen({ scene, ownedHorn, resultImage, onRestart, onOpenShop }: ResultScreenProps) {
+export default function ResultScreen({ scene, ownedHorn, resultImage, mode = 'solo', onRestart, onOpenShop }: ResultScreenProps) {
   const [showConfetti, setShowConfetti] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setShowConfetti(false), 3500);
@@ -76,12 +77,12 @@ export default function ResultScreen({ scene, ownedHorn, resultImage, onRestart,
             fontFamily: '"Fredoka", system-ui', fontWeight: 700,
             fontSize: 26, color: COLORS.ink, margin: '10px 0 0',
             letterSpacing: -0.6, lineHeight: 1.1,
-          }}>Wauw, wat een coole cruiser! 🎉</h2>
+          }}>{mode === 'group' ? 'Wauw, wat een coole crew! 🎉' : 'Wauw, wat een coole cruiser! 🎉'}</h2>
         </div>
 
         {/* Result card */}
         <div style={{
-          width: '100%', aspectRatio: '4 / 5',
+          width: '100%', aspectRatio: mode === 'group' ? '4 / 3' : '4 / 5',
           borderRadius: 32, overflow: 'hidden',
           background: scene.gradient,
           boxShadow: '0 10px 0 rgba(31,37,64,0.06), 0 22px 50px rgba(31,37,64,0.22)',

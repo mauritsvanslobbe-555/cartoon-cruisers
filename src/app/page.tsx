@@ -5,19 +5,24 @@ import { SCENES, SceneId } from '@/lib/constants';
 import ParentalConsent from '@/components/ParentalConsent';
 import WelcomeScreen from '@/components/screens/WelcomeScreen';
 import SceneScreen from '@/components/screens/SceneScreen';
+import ModeScreen from '@/components/screens/ModeScreen';
 import PhotoScreen from '@/components/screens/PhotoScreen';
+import GroupPhotoScreen from '@/components/screens/GroupPhotoScreen';
 import LoadingScreen from '@/components/screens/LoadingScreen';
 import ResultScreen from '@/components/screens/ResultScreen';
 import HornShopScreen from '@/components/screens/HornShopScreen';
 
-type ScreenName = 'consent' | 'welcome' | 'scene' | 'photo' | 'loading' | 'result' | 'horn';
+type ScreenName = 'consent' | 'welcome' | 'scene' | 'mode' | 'photo' | 'groupPhoto' | 'loading' | 'result' | 'horn';
+type RideMode = 'solo' | 'group';
 
 export default function Home() {
   const [hasConsent, setHasConsent] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<ScreenName>('welcome');
   const [picked, setPicked] = useState<SceneId | null>(null);
+  const [rideMode, setRideMode] = useState<RideMode>('solo');
   const [ownedHorn, setOwnedHorn] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [groupPhotos, setGroupPhotos] = useState<string[] | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,9 +47,15 @@ export default function Home() {
     go('loading');
   };
 
+  const handleGroupDone = (photos: string[]) => {
+    setGroupPhotos(photos);
+    go('loading');
+  };
+
   const handleTransformDone = (image: string) => {
     setResultImage(image);
     setPhotoBase64(null);
+    setGroupPhotos(null);
     go('result');
   };
 
@@ -56,7 +67,9 @@ export default function Home() {
     setOwnedHorn(null);
     setResultImage(null);
     setPhotoBase64(null);
+    setGroupPhotos(null);
     setPicked(null);
+    setRideMode('solo');
     go('welcome');
   };
 
@@ -73,7 +86,7 @@ export default function Home() {
     );
   }
 
-  const order: ScreenName[] = ['welcome', 'scene', 'photo', 'loading', 'result', 'horn'];
+  const order: ScreenName[] = ['welcome', 'scene', 'mode', 'photo', 'groupPhoto', 'loading', 'result', 'horn'];
   const idx = order.indexOf(screen);
 
   return (
@@ -99,20 +112,35 @@ export default function Home() {
             {key === 'scene' && (
               <SceneScreen
                 onBack={() => go('welcome')}
-                onPick={() => go('photo')}
+                onPick={() => go('mode')}
                 picked={picked}
                 setPicked={setPicked}
               />
             )}
+            {key === 'mode' && (
+              <ModeScreen
+                onBack={() => go('scene')}
+                onPickSolo={() => { setRideMode('solo'); go('photo'); }}
+                onPickGroup={() => { setRideMode('group'); go('groupPhoto'); }}
+              />
+            )}
             {key === 'photo' && (
               <PhotoScreen
-                onBack={() => go('scene')}
+                onBack={() => go('mode')}
                 onCapture={handleCapture}
               />
             )}
-            {key === 'loading' && photoBase64 && picked && (
+            {key === 'groupPhoto' && (
+              <GroupPhotoScreen
+                onBack={() => go('mode')}
+                onDone={handleGroupDone}
+              />
+            )}
+            {key === 'loading' && picked && (photoBase64 || groupPhotos) && (
               <LoadingScreen
-                photo={photoBase64}
+                photo={photoBase64 || ''}
+                photos={groupPhotos || undefined}
+                mode={rideMode}
                 scene={picked}
                 onDone={handleTransformDone}
                 onError={handleTransformError}
@@ -123,6 +151,7 @@ export default function Home() {
                 scene={scene}
                 ownedHorn={ownedHorn}
                 resultImage={resultImage}
+                mode={rideMode}
                 onRestart={handleRestart}
                 onOpenShop={() => go('horn')}
               />

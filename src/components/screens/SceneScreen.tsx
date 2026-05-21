@@ -19,7 +19,7 @@ export default function SceneScreen({ onBack, onPick, picked, setPicked }: Scene
           fontFamily: '"Fredoka", system-ui', fontWeight: 500,
           fontSize: 13, color: COLORS.mintDark,
           letterSpacing: 1.4, textTransform: 'uppercase',
-        }}>Stap 1 van 3</div>
+        }}>Stap 1 van 4</div>
         <h2 style={{
           fontFamily: '"Fredoka", system-ui', fontWeight: 700,
           fontSize: 32, color: COLORS.ink, margin: '4px 0 0',

@@ -142,7 +142,7 @@ export default function PhotoScreen({ onBack, onCapture }: PhotoScreenProps) {
           fontFamily: '"Fredoka", system-ui', fontWeight: 500,
           fontSize: 13, color: COLORS.blueDark,
           letterSpacing: 1.4, textTransform: 'uppercase',
-        }}>Stap 2 van 3</div>
+        }}>Stap 3 van 4</div>
         <h2 style={{
           fontFamily: '"Fredoka", system-ui', fontWeight: 700,
           fontSize: 30, color: COLORS.ink, margin: '4px 0 0',

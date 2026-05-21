@@ -69,6 +69,38 @@ async function generateCartoon(personDescription: string, scenePrompt: string): 
   return Buffer.from(arrayBuffer);
 }
 
+// Step 2b: Pollinations.ai — generate GROUP cartoon (4 people on scooters)
+async function generateGroupCartoon(descriptions: string[], scenePrompt: string): Promise<Buffer> {
+  const scooterColors = ['red', 'blue', 'yellow', 'green'];
+  const characterLines = descriptions.map((desc, i) =>
+    `Character ${i + 1}: ${desc} riding a ${scooterColors[i]} Vespa`
+  ).join('. ');
+
+  const prompt = [
+    `Four cute adorable Pixar-style 3D cartoon characters riding together in a row on colorful vintage Vespa scooters.`,
+    characterLines + '.',
+    `All four riding side by side, wide angle view from slightly in front.`,
+    `Scene: ${scenePrompt}`,
+    `Vibrant colors, fun kid-friendly illustration, motion lines showing movement,`,
+    `joyful excited expressions, big expressive eyes, warm lighting, high quality 3D render, group photo composition.`,
+  ].join(' ');
+
+  const encodedPrompt = encodeURIComponent(prompt);
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=768&nologo=true&seed=${Date.now()}`;
+
+  const response = await fetch(url, {
+    redirect: 'follow',
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Pollinations error (${response.status})`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 const SCENE_PROMPTS: Record<string, string> = {
   city: 'a charming European city with colorful canal houses, cobblestone streets, warm golden sunset, Amsterdam-style bridges',
   beach: 'a tropical beach boulevard with tall palm trees, sparkling turquoise ocean, golden sand, bright blue sky with fluffy clouds',
@@ -80,34 +112,60 @@ const SCENE_PROMPTS: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { photo, scene } = body as { photo: string; scene: string };
+    const { photo, photos, scene, mode } = body as {
+      photo?: string;
+      photos?: string[];
+      scene: string;
+      mode?: 'solo' | 'group';
+    };
 
-    if (!photo || !scene) {
+    const isGroup = mode === 'group' && photos && photos.length === 4;
+
+    if ((!photo && !isGroup) || !scene) {
       return NextResponse.json(
-        { error: 'Missing photo or scene parameter' },
+        { error: 'Missing photo(s) or scene parameter' },
         { status: 400 }
       );
     }
 
-    // Step 1: Describe the person in the photo using Gemini vision
-    let description: string;
-    try {
-      description = await describePhoto(photo);
-    } catch (err) {
-      console.error('Gemini description error:', err);
-      // Fallback: use a generic description if Gemini fails
-      description = 'A happy child with a big smile';
-    }
-
-    console.log('Person description:', description);
-
-    // Step 2: Generate cartoon with Pollinations
     const scenePrompt = SCENE_PROMPTS[scene] || SCENE_PROMPTS.city;
-    const imageBuffer = await generateCartoon(description, scenePrompt);
-    const base64Image = imageBuffer.toString('base64');
 
-    // Return base64 image (photo is NOT stored — only used transiently)
-    return NextResponse.json({ image: base64Image });
+    if (isGroup) {
+      // GROUP MODE: Describe all 4 people, then generate group cartoon
+      const descriptions = await Promise.all(
+        photos.map(async (p, i) => {
+          try {
+            return await describePhoto(p);
+          } catch (err) {
+            console.error(`Gemini description error for person ${i + 1}:`, err);
+            return `A happy child with a big smile (person ${i + 1})`;
+          }
+        })
+      );
+
+      console.log('Group descriptions:', descriptions);
+
+      const imageBuffer = await generateGroupCartoon(descriptions, scenePrompt);
+      const base64Image = imageBuffer.toString('base64');
+
+      return NextResponse.json({ image: base64Image });
+    } else {
+      // SOLO MODE: Original flow
+      let description: string;
+      try {
+        description = await describePhoto(photo!);
+      } catch (err) {
+        console.error('Gemini description error:', err);
+        description = 'A happy child with a big smile';
+      }
+
+      console.log('Person description:', description);
+
+      const imageBuffer = await generateCartoon(description, scenePrompt);
+      const base64Image = imageBuffer.toString('base64');
+
+      return NextResponse.json({ image: base64Image });
+    }
   } catch (error) {
     console.error('Transform error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error occurred';
