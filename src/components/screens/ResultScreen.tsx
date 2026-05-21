@@ -25,7 +25,7 @@ export default function ResultScreen({ scene, ownedHorn, resultImage, onRestart,
   const handleSave = () => {
     if (!resultImage) return;
     const link = document.createElement('a');
-    link.href = `data:image/png;base64,${resultImage}`;
+    link.href = `data:image/jpeg;base64,${resultImage}`;
     link.download = `cartoon-cruiser-${scene.id}.png`;
     link.click();
   };
@@ -33,7 +33,7 @@ export default function ResultScreen({ scene, ownedHorn, resultImage, onRestart,
   const handleShare = async () => {
     if (!resultImage) return;
     try {
-      const blob = await fetch(`data:image/png;base64,${resultImage}`).then(r => r.blob());
+      const blob = await fetch(`data:image/jpeg;base64,${resultImage}`).then(r => r.blob());
       const file = new File([blob], 'cartoon-cruiser.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Mijn Cartoon Cruiser!' });
@@ -85,7 +85,7 @@ export default function ResultScreen({ scene, ownedHorn, resultImage, onRestart,
           {resultImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`data:image/png;base64,${resultImage}`}
+              src={`data:image/jpeg;base64,${resultImage}`}
               alt="Je cartoon cruiser"
               style={{
                 position: 'absolute', inset: 0,

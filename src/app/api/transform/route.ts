@@ -1,62 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GEMINI_MODEL = 'gemini-2.5-flash-image';
+export const maxDuration = 60; // Vercel function timeout (seconds)
 
-interface GeminiPart {
-  text?: string;
-  inlineData?: { mimeType: string; data: string };
-}
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: GeminiPart[];
-    };
-  }>;
-  error?: { message: string; code: number };
-}
-
-async function callGemini(parts: GeminiPart[]): Promise<string> {
+// Step 1: Gemini 2.5 Flash (free tier) — analyze photo, describe the person
+async function describePhoto(photoBase64: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
+  const photoData = photoBase64.replace(/^data:image\/\w+;base64,/, '');
+
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
+        contents: [{
+          parts: [
+            {
+              text: `You are creating a description for an image generation prompt. Look at this photo and describe the person's appearance in ONE short sentence. Include: approximate age (child/teen/adult), hair color and style, skin tone, and any notable features like glasses or freckles. Be brief and factual. Example: "A 8-year-old child with curly brown hair, light skin, and round glasses." Only output the description, nothing else.`,
+            },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: photoData,
+              },
+            },
+          ],
+        }],
       }),
     }
   );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    throw new Error(`Gemini vision error (${response.status}): ${errorText}`);
   }
 
-  const data: GeminiResponse = await response.json();
-
-  if (data.error) {
-    throw new Error(`Gemini error: ${data.error.message}`);
-  }
-
-  const candidate = data.candidates?.[0];
-  if (!candidate?.content?.parts) {
-    throw new Error('No content in Gemini response');
-  }
-
-  const imagePart = candidate.content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
-  if (!imagePart?.inlineData) {
-    throw new Error('No image in Gemini response');
-  }
-
-  return imagePart.inlineData.data;
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('No description from Gemini');
+  return text.trim();
 }
+
+// Step 2: Pollinations.ai (free, no key needed) — generate cartoon image
+async function generateCartoon(personDescription: string, scenePrompt: string): Promise<Buffer> {
+  const prompt = [
+    `Cute adorable Pixar-style 3D cartoon character based on: ${personDescription}`,
+    `The character is happily riding a colorful vintage Vespa scooter.`,
+    `Scene: ${scenePrompt}`,
+    `Vibrant colors, fun kid-friendly illustration, motion lines showing movement,`,
+    `joyful excited expression, big expressive eyes, warm lighting, high quality 3D render.`,
+  ].join(' ');
+
+  const encodedPrompt = encodeURIComponent(prompt);
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=960&nologo=true&seed=${Date.now()}`;
+
+  const response = await fetch(url, {
+    redirect: 'follow',
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Pollinations error (${response.status})`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+const SCENE_PROMPTS: Record<string, string> = {
+  city: 'a charming European city with colorful canal houses, cobblestone streets, warm golden sunset, Amsterdam-style bridges',
+  beach: 'a tropical beach boulevard with tall palm trees, sparkling turquoise ocean, golden sand, bright blue sky with fluffy clouds',
+  mountain: 'a scenic mountain pass with snow-capped peaks, green pine forests, winding road, crisp blue sky with sunshine',
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,43 +87,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const photoData = photo.replace(/^data:image\/\w+;base64,/, '');
+    // Step 1: Describe the person in the photo using Gemini vision
+    let description: string;
+    try {
+      description = await describePhoto(photo);
+    } catch (err) {
+      console.error('Gemini description error:', err);
+      // Fallback: use a generic description if Gemini fails
+      description = 'A happy child with a big smile';
+    }
 
-    // Step 1: Convert photo to cartoon style
-    const cartoonImage = await callGemini([
-      {
-        text: 'Transform this photo of a person into a cute Pixar-style 3D cartoon character. Keep the person\'s key facial features recognizable but make them adorable, colorful, and cartoonish with big expressive eyes. Render the character from roughly the same angle as the original photo. Output only the cartoon character on a clean white background, no other elements.',
-      },
-      {
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: photoData,
-        },
-      },
-    ]);
+    console.log('Person description:', description);
 
-    // Step 2: Place cartoon character on scooter in scene
-    const sceneDescriptions: Record<string, string> = {
-      city: 'a charming European city street with canals, colorful historic buildings, cobblestone roads, and warm golden sunset lighting. The style should be vibrant and fun, like a Pixar movie scene.',
-      beach: 'a tropical beach boulevard with tall palm trees, sparkling turquoise ocean waves, golden sand dunes, and a bright blue sky with fluffy white clouds. The style should be vibrant and fun, like a Pixar movie scene.',
-      mountain: 'a scenic mountain pass with majestic snow-capped peaks, lush green pine forests, a winding mountain road, and a crisp blue sky with rays of sunlight. The style should be vibrant and fun, like a Pixar movie scene.',
-    };
+    // Step 2: Generate cartoon with Pollinations
+    const scenePrompt = SCENE_PROMPTS[scene] || SCENE_PROMPTS.city;
+    const imageBuffer = await generateCartoon(description, scenePrompt);
+    const base64Image = imageBuffer.toString('base64');
 
-    const sceneDesc = sceneDescriptions[scene] || sceneDescriptions.city;
-
-    const finalImage = await callGemini([
-      {
-        text: `Take this cartoon character and place them happily riding a colorful vintage Vespa scooter in ${sceneDesc}. The character should be sitting on the scooter, looking excited and joyful. Show some motion lines or wind effects to suggest movement. The final image should be a fun, vibrant, kid-friendly illustration in a consistent Pixar 3D cartoon style. Make it a complete scene with the character as the star.`,
-      },
-      {
-        inlineData: {
-          mimeType: 'image/png',
-          data: cartoonImage,
-        },
-      },
-    ]);
-
-    return NextResponse.json({ image: finalImage });
+    // Return base64 image (photo is NOT stored — only used transiently)
+    return NextResponse.json({ image: base64Image });
   } catch (error) {
     console.error('Transform error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error occurred';
