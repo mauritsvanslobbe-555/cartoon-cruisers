@@ -18,19 +18,24 @@ async function describePhoto(photoBase64: string): Promise<string> {
         contents: [{
           parts: [
             {
-              text: `You are creating a description for an image generation prompt. Look at this photo and describe the person's appearance in ONE short sentence.
+              text: `You are creating a detailed description for a Pixar-style cartoon character that must CLOSELY RESEMBLE the real person in this photo. Be very specific and detailed.
 
-Include ONLY these features:
-- age group (child/teen/adult)
-- hair: color AND style (e.g. "short straight blonde hair", "long curly brown hair")
-- skin tone (light/medium/dark)
-- glasses: YES or NO (this is critical, be accurate)
-- one other notable feature if present (freckles, beard, etc.)
+Describe ALL of the following in 2-3 sentences:
+- GENDER and approximate AGE (be specific: e.g. "7-year-old boy", "35-year-old woman")
+- FACE SHAPE: round, oval, square, heart-shaped, long, etc.
+- HAIR: exact color (not just "brown" but "warm chestnut brown" or "platinum blonde"), style (messy, neat, spiky, ponytail, braids, buzz cut, parted to the side, bangs, etc.), length, texture (straight, wavy, curly, coily)
+- SKIN TONE: be specific (fair/pale, olive, warm beige, light brown, dark brown, etc.)
+- EYES: color and shape (big round eyes, narrow almond eyes, droopy eyes, etc.)
+- NOSE: small button nose, wide nose, pointy nose, etc.
+- MOUTH/LIPS: thin lips, full lips, wide smile, etc.
+- BODY BUILD: slim, chubby, stocky, tall, petite, etc.
+- GLASSES: describe them if present (round, rectangular, thick-rimmed, color) or explicitly say "no glasses"
+- DISTINCTIVE FEATURES: freckles, dimples, gap in teeth, birthmark, braces, beard, mustache, earrings, specific hairstyle details, etc.
 
-Be very precise. Example: "An 8-year-old child with short curly brown hair, light skin, no glasses."
-Another example: "A 35-year-old adult woman with long straight black hair, medium skin, wearing round glasses."
+The description must capture what makes THIS person look unique and recognizable. Be factual and precise.
+Example: "A chubby 8-year-old boy with a round face, messy sandy blonde wavy hair with a cowlick, fair freckled skin, big bright blue round eyes, a small button nose, and a wide toothy grin with a gap between his front teeth. No glasses. He has rosy cheeks and a stocky build."
 
-Only output the description, nothing else.`,
+Output ONLY the description, nothing else.`,
             },
             {
               inlineData: {
@@ -58,11 +63,12 @@ Only output the description, nothing else.`,
 // Step 2: Pollinations.ai (free, no key needed) — generate cartoon image
 async function generateCartoon(personDescription: string, scenePrompt: string): Promise<Buffer> {
   const prompt = [
-    `Cute adorable Pixar-style 3D cartoon character based on: ${personDescription}`,
+    `Pixar-style 3D cartoon character that closely resembles this real person: ${personDescription}`,
+    `The character must have the EXACT same face shape, hair style, hair color, skin tone, and distinctive features described above.`,
     `The character is happily riding a colorful vintage Vespa scooter.`,
     `Scene: ${scenePrompt}`,
     `Vibrant colors, fun kid-friendly illustration, motion lines showing movement,`,
-    `joyful excited expression, big expressive eyes, warm lighting, high quality 3D render.`,
+    `joyful excited expression, warm lighting, high quality 3D render, character portrait focus.`,
   ].join(' ');
 
   const encodedPrompt = encodeURIComponent(prompt);
@@ -109,13 +115,14 @@ async function generateGroupCartoon(descriptions: string[], scenePrompt: string)
     : 'None of the characters wear glasses.';
 
   const prompt = [
-    `Four distinct Pixar-style 3D cartoon characters, each looking DIFFERENT from each other, riding vintage Vespa scooters side by side.`,
+    `Four distinct Pixar-style 3D cartoon characters that each closely resemble a different real person. Each character MUST look unique with their own face shape, hair, build, and features.`,
     `Each character must match their description EXACTLY. Do NOT mix features between characters.`,
     glassesNote,
     contrastive,
-    `Wide angle view showing all four riding together in a row.`,
+    `The characters must look visibly DIFFERENT from each other — different face shapes, different hair, different builds.`,
+    `All four riding vintage Vespa scooters side by side, wide angle view.`,
     `Scene: ${scenePrompt}`,
-    `Vibrant colors, fun kid-friendly illustration, motion lines, joyful expressions, big eyes, warm lighting, high quality 3D render.`,
+    `Vibrant colors, fun kid-friendly illustration, motion lines, joyful expressions, warm lighting, high quality 3D render.`,
   ].join(' ');
 
   const encodedPrompt = encodeURIComponent(prompt);
