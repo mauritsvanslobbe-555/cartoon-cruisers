@@ -18,7 +18,19 @@ async function describePhoto(photoBase64: string): Promise<string> {
         contents: [{
           parts: [
             {
-              text: `You are creating a description for an image generation prompt. Look at this photo and describe the person's appearance in ONE short sentence. Include: approximate age (child/teen/adult), hair color and style, skin tone, and any notable features like glasses or freckles. Be brief and factual. Example: "A 8-year-old child with curly brown hair, light skin, and round glasses." Only output the description, nothing else.`,
+              text: `You are creating a description for an image generation prompt. Look at this photo and describe the person's appearance in ONE short sentence.
+
+Include ONLY these features:
+- age group (child/teen/adult)
+- hair: color AND style (e.g. "short straight blonde hair", "long curly brown hair")
+- skin tone (light/medium/dark)
+- glasses: YES or NO (this is critical, be accurate)
+- one other notable feature if present (freckles, beard, etc.)
+
+Be very precise. Example: "An 8-year-old child with short curly brown hair, light skin, no glasses."
+Another example: "A 35-year-old adult woman with long straight black hair, medium skin, wearing round glasses."
+
+Only output the description, nothing else.`,
             },
             {
               inlineData: {
@@ -69,20 +81,41 @@ async function generateCartoon(personDescription: string, scenePrompt: string): 
   return Buffer.from(arrayBuffer);
 }
 
+// Build contrastive descriptions so the image model doesn't mix up features
+function buildContrastiveDescriptions(descriptions: string[]): string {
+  // Detect who has glasses
+  const hasGlasses = descriptions.map(d => /glass/i.test(d));
+  const scooterColors = ['red', 'blue', 'yellow', 'green'];
+  const positions = ['far left', 'center-left', 'center-right', 'far right'];
+
+  return descriptions.map((desc, i) => {
+    const glassesNote = hasGlasses[i]
+      ? 'WEARING GLASSES'
+      : 'NO glasses';
+    return `[Person ${i + 1} on ${scooterColors[i]} Vespa, positioned ${positions[i]}]: ${desc}. (${glassesNote})`;
+  }).join('\n');
+}
+
 // Step 2b: Pollinations.ai — generate GROUP cartoon (4 people on scooters)
 async function generateGroupCartoon(descriptions: string[], scenePrompt: string): Promise<Buffer> {
-  const scooterColors = ['red', 'blue', 'yellow', 'green'];
-  const characterLines = descriptions.map((desc, i) =>
-    `Character ${i + 1}: ${desc} riding a ${scooterColors[i]} Vespa`
-  ).join('. ');
+  const contrastive = buildContrastiveDescriptions(descriptions);
+
+  // Count who has glasses for explicit note
+  const glassesIndices = descriptions
+    .map((d, i) => /glass/i.test(d) ? i + 1 : -1)
+    .filter(i => i > 0);
+  const glassesNote = glassesIndices.length > 0
+    ? `CRITICAL: ONLY person ${glassesIndices.join(' and ')} wears glasses. The others have NO glasses.`
+    : 'None of the characters wear glasses.';
 
   const prompt = [
-    `Four cute adorable Pixar-style 3D cartoon characters riding together in a row on colorful vintage Vespa scooters.`,
-    characterLines + '.',
-    `All four riding side by side, wide angle view from slightly in front.`,
+    `Four distinct Pixar-style 3D cartoon characters, each looking DIFFERENT from each other, riding vintage Vespa scooters side by side.`,
+    `Each character must match their description EXACTLY. Do NOT mix features between characters.`,
+    glassesNote,
+    contrastive,
+    `Wide angle view showing all four riding together in a row.`,
     `Scene: ${scenePrompt}`,
-    `Vibrant colors, fun kid-friendly illustration, motion lines showing movement,`,
-    `joyful excited expressions, big expressive eyes, warm lighting, high quality 3D render, group photo composition.`,
+    `Vibrant colors, fun kid-friendly illustration, motion lines, joyful expressions, big eyes, warm lighting, high quality 3D render.`,
   ].join(' ');
 
   const encodedPrompt = encodeURIComponent(prompt);
