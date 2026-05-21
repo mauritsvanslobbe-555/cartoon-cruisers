@@ -107,25 +107,6 @@ export default function PhotoScreen({ onBack, onCapture }: PhotoScreenProps) {
     setTimeout(() => onCapture(base64), 650);
   };
 
-  const handleFileSelect = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.setAttribute('capture', 'user'); // iOS: open front camera directly
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        setHasPhoto(true);
-        setTimeout(() => onCapture(base64), 650);
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  };
-
   const handleGallerySelect = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -261,7 +242,7 @@ export default function PhotoScreen({ onBack, onCapture }: PhotoScreenProps) {
             <Icon name="image" size={22} strokeWidth={2.4} color={COLORS.blue} /> Kies uit galerij
           </BigButton>
         ) : (
-          <BigButton onClick={handleFileSelect} color="#fff" textColor={COLORS.ink} shadow="#E2E7EA"
+          <BigButton onClick={handleGallerySelect} color="#fff" textColor={COLORS.ink} shadow="#E2E7EA"
             style={{ border: `2px solid ${COLORS.ink}10` }}>
             <Icon name="image" size={22} strokeWidth={2.4} color={COLORS.blue} /> Kies uit galerij
           </BigButton>
