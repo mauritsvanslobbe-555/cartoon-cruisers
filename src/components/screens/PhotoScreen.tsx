@@ -32,10 +32,6 @@ export default function PhotoScreen({ onBack, onCapture }: PhotoScreenProps) {
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setCameraActive(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Camera niet beschikbaar';
@@ -46,6 +42,13 @@ export default function PhotoScreen({ onBack, onCapture }: PhotoScreenProps) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraActive]);
 
   useEffect(() => {
     return () => stopCamera();
