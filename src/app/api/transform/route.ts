@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60; // Vercel function timeout (seconds)
 
+// Helper: fetch with timeout (works on all Node.js versions)
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  return Promise.race([
+    fetch(url, options),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
 // Step 1: Gemini 2.5 Flash (free tier) — analyze photo, describe the person
 async function describePhoto(photoBase64: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -9,22 +19,20 @@ async function describePhoto(photoBase64: string): Promise<string> {
 
   const photoData = photoBase64.replace(/^data:image\/\w+;base64,/, '');
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(20000), // 20s max for Gemini
       body: JSON.stringify({
         generationConfig: {
-          maxOutputTokens: 200,
-          temperature: 0.3,
-          thinkingConfig: { thinkingBudget: 0 },
+          maxOutputTokens: 150,
+          temperature: 0.2,
         },
         contents: [{
           parts: [
             {
-              text: `Describe this person for a cartoon character in ONE sentence (max 40 words). Include: age, gender, face shape, hair color+style, skin tone, eye color, glasses (yes/no), and one unique feature. Be specific. Example: "A 9-year-old girl with a round face, long curly red hair, fair freckled skin, green eyes, no glasses, and a big toothy grin." Output ONLY the sentence.`,
+              text: `Describe this person in ONE short sentence for a cartoon. Include: age, gender, hair color and style, skin tone, glasses yes/no, and one unique feature. Example: "A 9-year-old girl with long curly red hair, fair freckled skin, green eyes, and no glasses." Only output the sentence.`,
             },
             {
               inlineData: {
@@ -35,7 +43,8 @@ async function describePhoto(photoBase64: string): Promise<string> {
           ],
         }],
       }),
-    }
+    },
+    15000, // 15s timeout for Gemini
   );
 
   if (!response.ok) {
@@ -46,9 +55,8 @@ async function describePhoto(photoBase64: string): Promise<string> {
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('No description from Gemini');
-  // Trim to max 250 chars to keep Pollinations URL safe
   const trimmed = text.trim();
-  return trimmed.length > 250 ? trimmed.slice(0, 250) : trimmed;
+  return trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
 }
 
 // Step 2: Pollinations.ai (free, no key needed) — generate cartoon image
@@ -63,10 +71,7 @@ async function generateCartoon(personDescription: string, scenePrompt: string): 
   const encodedPrompt = encodeURIComponent(prompt);
   const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=960&nologo=true&seed=${Date.now()}`;
 
-  const response = await fetch(url, {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(60000),
-  });
+  const response = await fetchWithTimeout(url, { redirect: 'follow' }, 40000);
 
   if (!response.ok) {
     throw new Error(`Pollinations error (${response.status})`);
@@ -95,10 +100,7 @@ async function generateGroupCartoon(descriptions: string[], scenePrompt: string)
   const encodedPrompt = encodeURIComponent(prompt);
   const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=768&nologo=true&seed=${Date.now()}`;
 
-  const response = await fetch(url, {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(60000),
-  });
+  const response = await fetchWithTimeout(url, { redirect: 'follow' }, 40000);
 
   if (!response.ok) {
     throw new Error(`Pollinations error (${response.status})`);

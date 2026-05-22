@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SCENES, SceneId } from '@/lib/constants';
 import ParentalConsent from '@/components/ParentalConsent';
 import WelcomeScreen from '@/components/screens/WelcomeScreen';
@@ -75,6 +75,16 @@ export default function Home() {
 
   const scene = SCENES.find(s => s.id === picked) || SCENES[0];
 
+  // Dynamic screen order based on ride mode — no gaps to skip
+  const order: ScreenName[] = useMemo(() => {
+    if (rideMode === 'group') {
+      return ['welcome', 'scene', 'mode', 'groupPhoto', 'loading', 'result', 'horn'];
+    }
+    return ['welcome', 'scene', 'mode', 'photo', 'loading', 'result', 'horn'];
+  }, [rideMode]);
+
+  const idx = order.indexOf(screen);
+
   // Don't render until we know consent state
   if (hasConsent === null) return null;
 
@@ -85,9 +95,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const order: ScreenName[] = ['welcome', 'scene', 'mode', 'photo', 'groupPhoto', 'loading', 'result', 'horn'];
-  const idx = order.indexOf(screen);
 
   return (
     <div style={{
